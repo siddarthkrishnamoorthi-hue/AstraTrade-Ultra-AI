@@ -1,0 +1,50 @@
+# Core Dependencies
+python-dotenv>=1.0.0
+numpy>=1.24.0
+pandas>=2.1.0
+MetaTrader5>=5.0.45
+yfinance>=0.2.28
+alpha_vantage>=2.3.1
+
+# Database
+SQLAlchemy>=2.0.0
+aiosqlite>=0.19.0
+
+# Machine Learning & AI
+torch>=2.1.0
+transformers>=4.34.0
+xgboost>=2.0.0
+scikit-learn>=1.3.0
+stable-baselines3>=2.1.0
+langchain>=0.0.300
+crewai>=0.1.0
+faiss-cpu>=1.7.4
+diffusers>=0.21.0
+
+# Technical Analysis
+ta-lib>=0.4.28
+pandas-ta>=0.3.14b
+
+# Visualization & Monitoring
+matplotlib>=3.8.0
+seaborn>=0.13.0
+plotly>=5.17.0
+streamlit>=1.27.0
+wandb>=0.15.12
+mlflow>=2.7.0
+
+# Async & Performance
+aiohttp>=3.8.5
+asyncio>=3.4.3
+redis>=5.0.0
+joblib>=1.3.2
+
+# Testing & Quality
+pytest>=7.4.2
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+
+# Utilities
+python-telegram-bot>=20.6
+tqdm>=4.66.1
+loguru>=0.7.2

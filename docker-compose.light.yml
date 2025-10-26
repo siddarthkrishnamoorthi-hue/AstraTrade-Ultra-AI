@@ -1,0 +1,59 @@
+# Optimized for minimal resource usage
+version: '3.8'
+
+services:
+  trading_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.light
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    environment:
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
+      - DB_CONNECTION=postgresql://user:password@db:5432/astratrade
+      # Memory optimization env vars
+      - PYTHONMALLOC=malloc
+      - PYTHONFAULTHANDLER=1
+      - MALLOC_TRIM_THRESHOLD_=100000
+    volumes:
+      - ./models:/app/models:ro  # Read-only mount
+    depends_on:
+      - redis
+      - db
+    ports:
+      - "8000:8000"
+
+  db:
+    image: postgres:13-alpine  # Using lightweight Alpine version
+    command: postgres -c shared_buffers=256MB -c max_connections=50
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=astratrade
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:6.2-alpine  # Using lightweight Alpine version
+    command: redis-server --save 60 1 --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+volumes:
+  db_data:
+  redis_data:

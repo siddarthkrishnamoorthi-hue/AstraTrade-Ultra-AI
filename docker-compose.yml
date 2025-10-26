@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  trading-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.multi
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_SERVERS=kafka:9092
+      - DB_URL=postgresql://postgres:postgres@timescaledb:5432/trading
+    depends_on:
+      - redis
+      - kafka
+      - timescaledb
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    command: python main.py
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.multi
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      - redis
+      - kafka
+    command: python -m services.ml_service
+
+  rl-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.multi
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      - redis
+      - kafka
+    volumes:
+      - ./models:/app/models
+    command: python -m services.rl_service
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg14-latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=trading
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+
+volumes:
+  redis-data:
+  kafka-data:
+  timescaledb-data:
+  prometheus-data:
+  grafana-data: '3.8'
+
+services:
+  # Trading Service
+  trading_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.trading
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_BROKER=kafka:9092
+      - DB_URL=postgresql://user:password@timescale:5432/astratrade
+    depends_on:
+      - redis
+      - kafka
+      - timescale
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    volumes:
+      - ./models:/app/models
+      - ./config:/app/config
+
+  # ML Service
+  ml_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ml
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_BROKER=kafka:9092
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+    volumes:
+      - ./models:/app/models
+
+  # Risk Management Service
+  risk_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.risk
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_BROKER=kafka:9092
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+  # Market Analysis Service
+  analysis_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.analysis
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_BROKER=kafka:9092
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  # RL Training Service
+  rl_trainer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rl
+    environment:
+      - REDIS_HOST=redis
+      - KAFKA_BROKER=kafka:9092
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+    volumes:
+      - ./models:/app/models
+
+  # Redis for Caching
+  redis:
+    image: redis:6.2
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+
+  # Kafka for Message Queue
+  kafka:
+    image: confluentinc/cp-kafka:6.2.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  # TimescaleDB for Time Series Data
+  timescale:
+    image: timescale/timescaledb:latest-pg14
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: astratrade
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:v2.30.3
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+  # Grafana for Monitoring
+  grafana:
+    image: grafana/grafana:8.2.2
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  redis_data:
+  kafka_data:
+  timescale_data:
+  prometheus_data:
+  grafana_data:

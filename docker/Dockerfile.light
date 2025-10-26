@@ -1,0 +1,35 @@
+# Lightweight Dockerfile optimized for minimal resource usage
+FROM python:3.9-slim-buster as base
+
+# Set working directory
+WORKDIR /app
+
+# Install only essential system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only necessary files
+COPY requirements.txt .
+COPY agents ./agents
+COPY utils ./utils
+COPY main.py .
+
+# Install minimal dependencies
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir \
+    uvicorn[standard] \
+    gunicorn \
+    psycopg2-binary \
+    redis
+
+# Set Python optimization flags
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONASYNCIODEBUG=0
+ENV PYTHONOPTIMIZE=2
+ENV PYTHONMALLOC=malloc
+ENV PYTHONFAULTHANDLER=1
+
+# Run with minimal workers
+CMD ["gunicorn", "main:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
