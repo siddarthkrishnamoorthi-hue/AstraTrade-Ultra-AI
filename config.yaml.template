@@ -1,0 +1,62 @@
+# AstraTrade Ultra AI Configuration Template
+# Rename to config.yaml and fill in your values
+
+# Database Configuration
+database:
+  host: localhost
+  port: 5432
+  name: astratrade
+  user: your_username
+  password: your_password
+
+# Redis Configuration
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+
+# API Configuration
+api:
+  host: 0.0.0.0
+  port: 8000
+  key: your_api_key
+
+# Trading Configuration
+trading:
+  max_positions: 5
+  risk_per_trade: 1.0
+  max_daily_loss: 3.0
+  trading_hours:
+    start: "00:00"
+    end: "23:59"
+
+# Broker Configuration
+broker:
+  type: mt5  # or mt4
+  account_id: your_account_id
+  server: your_server
+  symbols:
+    - EURUSD
+    - GBPUSD
+    - USDJPY
+
+# Model Configuration
+model:
+  batch_size: 32
+  update_interval: 3600
+  min_samples: 100
+  confidence_threshold: 0.7
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  interval: 60
+  metrics:
+    - cpu
+    - memory
+    - disk
+    - network
+  alerts:
+    cpu_threshold: 80
+    memory_threshold: 85
+    disk_threshold: 90

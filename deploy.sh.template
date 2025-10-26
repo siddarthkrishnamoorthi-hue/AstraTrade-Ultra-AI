@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# AstraTrade Ultra AI Deployment Script Template
+# Rename to deploy.sh and customize for your environment
+
+# Environment variables
+export DATABASE_URL="postgresql://user:password@host:port/dbname"
+export REDIS_URL="redis://localhost:6379"
+export API_KEY="your_api_key"
+export MT5_ACCOUNT_ID="your_account_id"
+export MT5_PASSWORD="your_password"
+export MT5_SERVER="your_server"
+
+# Create necessary directories
+mkdir -p logs models config/credentials
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Setup database
+python scripts/setup_database.py
+
+# Setup credentials
+python scripts/setup_credentials.py
+
+# Start services
+if [ "$1" == "prod" ]; then
+    docker-compose up -d
+else
+    docker-compose -f docker-compose.light.yml up -d
+fi
+
+# Monitor deployment
+echo "Waiting for services to start..."
+sleep 10
+
+# Check health
+curl http://localhost:8000/health
+
+echo "Deployment complete! Check logs for details."
